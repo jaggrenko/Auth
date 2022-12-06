@@ -1,0 +1,20 @@
+Endoint to refresh expired tokens
+---
+tags:
+- REFRESH_TOKEN
+description: Refresh expired tokens
+responses:
+  200:
+    description: New tokens were generated
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        example:
+          status: success
+          message: New tokens were generated
+  401:
+    $ref: '#/components/responses/Unauthorized'
+security:
+- jwt_auth:
+  - write:admin,subscriber,member

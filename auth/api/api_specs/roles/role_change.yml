@@ -1,0 +1,47 @@
+Endpoint to change role
+---
+tags:
+- CHANGE_ROLE_DETAILS
+description: change role info
+requestBody:
+  content:
+    application/json:
+      name: change role
+      description: change role info
+      schema:
+        $ref: '#/components/schemas/Role'
+      example:
+        code: admin
+        description: unlimited access to all actions
+parameters:
+- name: role_id
+  in: path
+  required: true
+  description: Role uuid
+  schema:
+    type: string
+  example:
+    role_id: a9c6e8da-f2bf-458a-978b-d2f50a031451
+responses:
+  200:
+    description: info about role was changed successfully
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+          properties:
+            role:
+              $ref: '#/components/schemas/Role'
+        example:
+          status: success
+          message: info about role was changed successfully
+          role:
+            id: a9c6e8da-f2bf-458a-978b-d2f50a031451
+            code: admin
+            description: unlimited access to all actions
+  401:
+    $ref: '#/components/responses/Unauthorized'
+  403:
+    $ref: '#/components/responses/Forbidden'
+  404:
+    $ref: '#/components/responses/NotFound'

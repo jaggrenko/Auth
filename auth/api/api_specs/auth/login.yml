@@ -1,0 +1,40 @@
+Endpoint for user login
+---
+tags:
+- LOGIN
+description: Get JWT tokens after login
+requestBody:
+  content:
+    application/json:
+      name: credentials
+      description: username/password to get jwt tokens
+      schema:
+        $ref: '#/components/schemas/Credentials'
+      example:
+        username: yandex
+        password: 12346
+responses:
+  200:
+    description: A pair of access/refresh tokens
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+          properties:
+            tokens:
+              $ref: '#/components/schemas/Token'
+        example:
+          status: success
+          message: JWT tokens were generated successfully
+          tokens:
+            access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXN1bHQiOiJZb3UgYXJlIHZlcnkgc21hcnQhIn0.GZvDoQdT9ldwmlPOrZWrpiaHas0DiFmZlytr1dhaxi4
+            refresh_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXN1bHQiOiJZb3UgYXJlIGF3ZXNvbWUhIn0.PhRXjIVL1yUhAND4uiE-p6V2rXHQ0drCj9156thJAJg
+  401:
+    description: Unauthorized access
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        example:
+          status: error
+          message: username or password are not correct

@@ -1,0 +1,20 @@
+Endpoint to logout user
+---
+tags:
+- LOGOUT
+description: User logout
+responses:
+  200:
+    description: Logout successfull
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        example:
+          status: success
+          message: User logout successfull
+  401:
+    $ref: '#/components/responses/Unauthorized'
+security:
+- jwt_auth:
+  - write:admin,subscriber,member

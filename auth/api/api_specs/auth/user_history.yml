@@ -1,0 +1,46 @@
+Endoint to get history of user logouts
+---
+tags:
+- LOGIN_HISTORY
+description: info about user login
+parameters:
+- name: user_id
+  in: path
+  required: true
+  description: User id to view login history
+  schema:
+    type: string
+responses:
+  200:
+    description: User login history is available
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+          properties:
+            history:
+              $ref: '#/components/schemas/UserLoginHistory'
+        example:
+          status: success
+          message: user login history is available
+          history:
+            - login_date: 2022-02-06
+              device:
+                ip: 89.100.100.100
+                user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36
+                created_at: 2021-02-15
+            - login_date: 2022-02-04
+              device:
+                ip: 89.100.100.100
+                user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36
+                created_at: 2021-02-15
+  401:
+    $ref: '#/components/responses/Unauthorized'
+  403:
+    $ref: '#/components/responses/Forbidden'
+  404:
+    $ref: '#/components/responses/NotFound'
+security:
+- jwt_auth:
+  - write:admin,subscriber,member
+  - read:admin,subscriber,member

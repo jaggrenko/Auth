@@ -1,0 +1,34 @@
+Endpoint to register new account
+---
+tags:
+- REGISTRATION
+description: Create new user account
+requestBody:
+  content:
+    application/json:
+      name: credentials
+      description: username/password for registration
+      schema:
+        $ref: '#/components/schemas/Credentials'
+      example:
+        name: some_user
+        password: "555555"
+responses:
+  200:
+    description: Successfully registred
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        example:
+          status: success
+          message: New account was registered successfully
+  400:
+    description: Registration failed
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        example:
+          status: error
+          message: The username is already in use

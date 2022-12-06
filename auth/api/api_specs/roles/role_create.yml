@@ -1,0 +1,40 @@
+Endpoint to create new role
+---
+tags:
+  - CREATE_ROLE
+description: Create new role
+requestBody:
+  content:
+    application/json:
+      name: new role
+      description: new role data
+      schema:
+        $ref: '#/components/schemas/Role'
+      example:
+        code: admin
+        description: unlimited access to all actions
+responses:
+  201:
+    description: List of roles is available
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+          properties:
+            role:
+              $ref: '#/components/schemas/Role'
+        example:
+          status: success
+          message: New role was created
+          role:
+            id: a9c6e8da-f2bf-458a-978b-d2f50a031451
+            code: admin
+            description: unlimited access to all actions
+  401:
+    $ref: '#/components/responses/Unauthorized'
+  403:
+    $ref: '#/components/responses/Forbidden'
+security:
+- jwt_auth:
+  - write:admin
+  - read:admin

@@ -1,0 +1,58 @@
+Endpoint to assign roles to user
+---
+tags:
+  - ASSIGN_ROLES
+description: Assign roles to user
+requestBody:
+  content:
+    application/json:
+      name: roles for user
+      description: roles for user
+      schema:
+        $ref: '#/components/schemas/UserRoleRequest'
+      example:
+        user_id: 7cd483e9-5888-40fd-813a-a382154bcfd2
+        role_ids: [a9c6e8da-f2bf-458a-978b-d2f50a031451, 7cf56926-054c-4522-ac6f-d9f5d0e9d18e]
+responses:
+  201:
+    description: Roles were assigned successfully
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+          properties:
+            user_roles:
+              $ref: '#/components/schemas/UserRoleResponse'
+        example:
+          status: success
+          message: roles were assigned to user
+          user_roles:
+            - id: 4a73b964-af72-4801-aed9-113783561540
+              user_id: 7cd483e9-5888-40fd-813a-a382154bcfd2
+              role_id: a9c6e8da-f2bf-458a-978b-d2f50a031451
+            - id: 0f55b9d8-f027-4766-9476-2b89e17c1854
+              user_id: 7cd483e9-5888-40fd-813a-a382154bcfd2
+              role_id: 7cf56926-054c-4522-ac6f-d9f5d0e9d18e
+  401:
+    $ref: '#/components/responses/Unauthorized'
+  403:
+    $ref: '#/components/responses/Forbidden'
+  404:
+    description: The specified resource was not found
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Response'
+        examples:
+          nouser:
+            value:
+              status: error
+              message: user not found
+          norole:
+            value:
+              status: error
+              message: role not found
+security:
+- jwt_auth:
+  - write:admin
+  - read:admin
