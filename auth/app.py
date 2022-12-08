@@ -1,6 +1,7 @@
 import click
 from flasgger import Swagger
 from flask import Flask
+from flask_migrate import Migrate
 
 from common.app_common import db, jwt, ma
 from core import settings as default_config
@@ -12,6 +13,7 @@ def create_app(config=None) -> Flask:
     """Create a Flask app."""
     app = Flask(__name__, instance_relative_config=True)
 
+    migrate = Migrate(app, db)
     config = config or default_config
     configure_blueprints(app)
     configure_db(app, config=config.PostgresSettings())

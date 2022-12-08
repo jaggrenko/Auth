@@ -51,14 +51,21 @@ class Permissions(ModelAbstract):
 
 
 class UserRole(ModelAbstract):
-    __tablename__ = 'user_role'
+    __tablename__ = "user_role"
 
-    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    role_id = db.Column(UUID(as_uuid=True), db.ForeignKey('roles.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role_id = db.Column(UUID(as_uuid=True), db.ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
 
 
 class RolePermission(ModelAbstract):
-    __tablename__ = 'role_permission'
+    __tablename__ = "role_permission"
 
-    role_id = db.Column(UUID(as_uuid=True), db.ForeignKey('roles.id', ondelete='CASCADE'), nullable=False)
-    permission_id = db.Column(UUID(as_uuid=True), db.ForeignKey('permissions.id', ondelete='CASCADE'), nullable=False)
+    role_id = db.Column(UUID(as_uuid=True), db.ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
+    permission_id = db.Column(UUID(as_uuid=True), db.ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False)
+
+
+class History(ModelAbstract):
+    __tablename__ = "history"
+
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    client = db.Column(VARCHAR(120), nullable=False, unique=True)

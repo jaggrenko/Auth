@@ -2,23 +2,32 @@ from http import HTTPStatus
 
 from flask import Blueprint, request
 from flask.views import MethodView
-from flask_jwt_extended import create_access_token, create_refresh_token, \
-    get_jwt, get_jwt_identity, \
-    jwt_required
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token,
+    get_jwt, get_jwt_identity, jwt_required
+)
 from flask_jwt_extended.exceptions import UserLookupError
 
 from common.app_common import db
-from common.views_common import DBAddMixin, FindUserByIdMixin, \
-    FindUserByNameMixin, GetUserPermissionsMixin, \
-    MakeResponseMixin, UserView, permission_validate
-from db.db_models import User
+from common.status_messages import MessageHTTPCommon
+from common.views_common import (
+    DBAddMixin, FindUserByIdMixin, FindUserByNameMixin,
+    GetUserPermissionsMixin, MakeResponseMixin,
+    UserView, permission_validate
+)
+from core.settings import BluePrintSettings
+from db.db_models import User, History
+from schemas.users import user_data_schema
 
-
-blueprint = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
+bp_settings = BluePrintSettings()
+blueprint = Blueprint(
+    "auth", __name__,
+    url_prefix='{0}{1}'.format(bp_settings.API_URL, "auth")
+)
+messages = MessageHTTPCommon()
 
 
 class Register(UserView, MakeResponseMixin, FindUserByNameMixin, DBAddMixin):
-
     _name = "name"
     _password = "password"
     _model = User
@@ -26,15 +35,15 @@ class Register(UserView, MakeResponseMixin, FindUserByNameMixin, DBAddMixin):
     def validate(self):
         if not self._name or not self._password:
             return self.response(
-                "Fields username or/and password is/are empty",
-                "error",
+                messages.user_msg.user_fields_empty_msg,
+                messages.status_msg.error_msg,
                 HTTPStatus.BAD_REQUEST
             )
 
         if self.user_find(self._model, self._name):
             return self.response(
-                "The name is already in use",
-                "error",
+                messages.user_msg.user_name_in_use_msg,
+                messages.status_msg.error_msg,
                 HTTPStatus.BAD_REQUEST
             )
 
@@ -49,17 +58,16 @@ class Register(UserView, MakeResponseMixin, FindUserByNameMixin, DBAddMixin):
         self._name = request.json.get(self._name)
         self._password = request.json.get(self._password)
 
-        print(self._name, self._password)
-
         response = self.validate()
 
         if not response:
             user = self._model(name=self._name, password=self._password)
             self.db_add(db, user)
 
-            response = self.response("New user was registered successfully",
-                                     "success",
-                                     HTTPStatus.OK)
+            response = self.response(
+                messages.user_msg.user_registred_success_msg,
+                messages.status_msg.success_msg,
+                HTTPStatus.OK)
         return response
 
 
@@ -74,16 +82,18 @@ class Login(UserView, MakeResponseMixin, FindUserByNameMixin):
         #     self._is_superuser: False,
         # }
 
-        access_token = create_access_token(identity=user_id)#, additional_claims=additional_claims)
-        refresh_token = create_refresh_token(identity=user_id)#, additional_claims=additional_claims)
+        access_token = create_access_token(
+            identity=user_id)  # , additional_claims=additional_claims)
+        refresh_token = create_refresh_token(
+            identity=user_id)  # , additional_claims=additional_claims)
 
         return access_token, refresh_token
 
     def validate(self):
         if not self._name or not self._password:
             return self.response(
-                "Fields username or/and password is/are empty",
-                "error",
+                messages.user_msg.user_fields_empty_msg,
+                messages.status_msg.error_msg,
                 HTTPStatus.BAD_REQUEST
             ), None
 
@@ -91,15 +101,15 @@ class Login(UserView, MakeResponseMixin, FindUserByNameMixin):
 
         if not user:
             return self.response(
-                "User name not found",
-                "error",
+                messages.user_msg.user_not_found_msg,
+                messages.status_msg.error_msg,
                 HTTPStatus.BAD_REQUEST
             ), None
 
         if not user.password_validate(self._password):
             return self.response(
-                "User name/password is incorrect",
-                "error",
+                messages.user_msg.user_or_pass_not_valid_msg,
+                messages.status_msg.error_msg,
                 HTTPStatus.UNAUTHORIZED
             ), None
 
@@ -112,8 +122,6 @@ class Login(UserView, MakeResponseMixin, FindUserByNameMixin):
 
         self._name = request.json.get(self._name)
         self._password = request.json.get(self._password)
-
-        print(self._name, self._password)
 
         response, user = self.validate()
 
@@ -140,8 +148,8 @@ class Logout(MethodView, MakeResponseMixin):
         file: ../api_specs/auth/logout.yml
         """
         response = self.response(
-            "logout successful",
-            "success",
+            messages.user_msg.user_logout_success_msg,
+            messages.status_msg.success_msg,
             HTTPStatus.OK
         )
 
@@ -164,7 +172,10 @@ class TokenRefresh(MethodView, MakeResponseMixin, GetUserPermissionsMixin,
         else:
             user = self.user_find(self._model, self._user_id)
             if not user:
-                raise UserLookupError("User with ID not found!", self._user_id)
+                raise UserLookupError(
+                    messages.user_msg.user_not_found_msg,
+                    self._user_id
+                )
 
             permissions = [permission.code for permission in
                            self.get_user_permissions(user.id)]
@@ -192,12 +203,15 @@ class TokenRefresh(MethodView, MakeResponseMixin, GetUserPermissionsMixin,
             access_token, refresh_token = self.get_tokens(self._user_id,
                                                           user_token)
         except UserLookupError:
-            return self.response("User not found", "error",
-                                 HTTPStatus.UNAUTHORIZED)
+            return self.response(
+                messages.user_msg.user_not_found_msg,
+                messages.status_msg.error_msg,
+                HTTPStatus.UNAUTHORIZED
+            )
 
         return self.response(
-            "JWT pair generation - success",
-            "success",
+            messages.jwt_pair_gen_success_msg,
+            messages.status_msg.success_msg,
             HTTPStatus.OK,
             **{"tokens":
                 {
@@ -208,8 +222,9 @@ class TokenRefresh(MethodView, MakeResponseMixin, GetUserPermissionsMixin,
         )
 
 
-class PasswordChange(MethodView, MakeResponseMixin, FindUserByIdMixin, DBAddMixin):
-    decorators = [permission_validate("users")]
+class PasswordChange(MethodView, MakeResponseMixin, FindUserByIdMixin,
+                     DBAddMixin):
+    decorators = [permission_validate("users",)]
 
     _password_old = "old_password"
     _password_new = "new_password"
@@ -219,15 +234,20 @@ class PasswordChange(MethodView, MakeResponseMixin, FindUserByIdMixin, DBAddMixi
         user = self.user_find(self._model, self._user_id)
 
         if not user:
-            return self.response("User not found!", "error",
-                                 HTTPStatus.NOT_FOUND), None
+            return self.response(
+                messages.user_msg.user_not_found_msg,
+                messages.status_msg.error_msg,
+                HTTPStatus.NOT_FOUND
+            ), None
 
         if not user.password_validate(self._password_old):
-            return self.response("Username/password is/are not valid", "error",
-                                 HTTPStatus.UNAUTHORIZED), None
+            return self.response(
+                messages.user_msg.user_or_pass_not_valid_msg,
+                messages.status_msg.error_msg,
+                HTTPStatus.UNAUTHORIZED
+            ), None
 
         return None, user
-
 
     def patch(self, user_id):
         """
@@ -252,14 +272,38 @@ class PasswordChange(MethodView, MakeResponseMixin, FindUserByIdMixin, DBAddMixi
         return response
 
 
-class GetUserHistory(MethodView, FindUserByIdMixin, MakeResponseMixin):
-    decorators = [permission_validate("history")]
+class GetUserHistory(MethodView, MakeResponseMixin, FindUserByIdMixin):
+    decorators = [permission_validate("history",)]
+
+    _page = 1
+    _per_page = 25
+    _model = History
 
     def get(self, user_id):
         """
         file: ../api_specs/auth/user_history.yml
         """
-        pass
+        self._user_id = user_id
+        user = self.user_find(self._model, self._user_id)
+
+        if user:
+            pages = self._model.query.paginate(
+                page=self._page,
+                per_page=self._per_page
+            )
+
+            return self.response(
+                messages.user_msg.user_found_msg,
+                messages.status_msg.success_msg,
+                HTTPStatus.OK,
+                **{"history": [user_data_schema.dump(page) for
+                               page in pages]}
+            )
+        return self.response(
+            messages.user_msg.user_not_found_msg,
+            messages.status_msg.error_msg,
+            HTTPStatus.NOT_FOUND
+        )
 
 
 blueprint.add_url_rule("/register", view_func=Register.as_view("register"))

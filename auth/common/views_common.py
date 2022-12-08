@@ -14,20 +14,23 @@ from db.db_models import Permissions, RolePermission, UserRole
 Status = Literal["success", "error"]
 
 
-def permission_validate(permission):
-    def _permission_validate(f):
-        @wraps(f)
+def permission_validate(*permissions):
+    def _permission_validate(method):
+        @wraps(method)
         def __permission_validate(*args, **kwargs):
             verify_jwt_in_request()
             claims = get_jwt()
 
-            has_permissions = True in [
-                kwargs.get('user_id') == uuid.UUID(get_jwt_identity()),
-                claims.get('is_superuser'),
-                permission in claims.get('permissions', [])]
+            has_permissions = all(
+                [
+                    kwargs.get('user_id') == uuid.UUID(get_jwt_identity()),
+                    claims.get('is_superuser'),
+                    permissions in claims.get('permissions', [])
+                ]
+            )
 
             if has_permissions:
-                return f(*args, **kwargs)
+                return method(*args, **kwargs)
 
             return make_response(
                 {

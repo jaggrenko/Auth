@@ -1,12 +1,10 @@
 import os
 from datetime import timedelta
-from logging import config as logging_config
 
-from pydantic import BaseSettings, Field
-
-# from core.logger import LOGGING
-#
-# logging_config.dictConfig(LOGGING)
+from pydantic import (
+    BaseConfig, BaseSettings, Field,
+    SecretStr, StrictStr, validator
+)
 
 SWAGGER_CONFIG = {
     "headers": [
@@ -26,47 +24,64 @@ SWAGGER_CONFIG = {
     "url_prefix": "/api",
 }
 
-PROJECT_NAME = os.getenv('PROJECT_NAME', 'auth')
 
-REDIS_HOST = os.getenv('REDIS_HOST', '127.0.0.1')
-REDIS_PORT = int(os.getenv('REDIS_PORT', 6389))
-
-POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'db')
-POSTGRES_PORT = int(os.getenv('POSTGRES_PORT', 5432))
-POSTGRES_NAME = os.getenv('POSTGRES_NAME', 'auth')
-POSTGRES_USER = os.getenv('POSTGRES_USER', 'user')
-POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 1234)
-POSTGRES_OPTIONS = os.getenv('POSTGRES_OPTIONS', '-c search_path=users')
-
-FLASK_HOST = os.getenv('FLASK_HOST', '127.0.0.1')
-FLASK_PORT = int(os.getenv('FLASK_PORT', 5000))
-BASE_URL = os.getenv('BASE_URL', '/api/v1')
+class CommonConfig(BaseConfig):
+    class Config():
+        env_file = "env/auth/.env"
 
 
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'super-secret')
-JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 1)))
-JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_EXPIRES', 2)))
-JWT_ERROR_MESSAGE_KEY = os.getenv('JWT_ERROR_MESSAGE_KEY', 'message')
+class BluePrintSettings(BaseSettings, CommonConfig):
+    PROJECT_NAME: StrictStr = Field(..., env="PROJECT_NAME")
+    API_URL: StrictStr = Field(..., env="API_URL")
 
 
-class JWTSettings(BaseSettings):
-    JWT_SECRET_KEY: str = Field(JWT_SECRET_KEY)
-    JWT_ACCESS_TOKEN_EXPIRES: timedelta = Field(JWT_ACCESS_TOKEN_EXPIRES)
-    JWT_REFRESH_TOKEN_EXPIRES: timedelta = Field(JWT_REFRESH_TOKEN_EXPIRES)
-    JWT_ERROR_MESSAGE_KEY: str = Field(JWT_ERROR_MESSAGE_KEY)
+class JWTSettings(BaseSettings, CommonConfig):
+    JWT_SECRET_KEY: StrictStr = Field("super-secret", env="JWT_SECRET_KEY")
+    JWT_ACCESS_TOKEN_EXPIRES: timedelta = Field(1,
+                                                env="JWT_ACCESS_TOKEN_EXPIRES")
+    JWT_REFRESH_TOKEN_EXPIRES: timedelta = Field(2,
+                                                 env="JWT_REFRESH_TOKEN_EXPIRES")
+    JWT_ERROR_MESSAGE_KEY: StrictStr = Field("message",
+                                             env="JWT_ERROR_MESSAGE_KEY")
+
+
+class PostgresDSN(BaseSettings, CommonConfig):
+    HOST: StrictStr = Field(..., env="POSTGRES_HOST")
+    DB: StrictStr = Field(..., env="POSTGRES_DB")
+    PORT: StrictStr = Field(..., env="POSTGRES_PORT")
+    PASSWORD: SecretStr = Field(..., env="POSTGRES_PASSWORD")
+    USER: StrictStr = Field(..., env="POSTGRES_USER")
 
 
 class PostgresSettings(BaseSettings):
-    SQLALCHEMY_DATABASE_URI: str = Field(
-        f'postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}'
-        f'@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_NAME}', description='url for auth service'
-    )
+    SQLALCHEMY_DATABASE_URI: StrictStr = ""
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = True
 
+    @validator("SQLALCHEMY_DATABASE_URI")
+    def validate(cls, uri):
+        pg: PostgresDSN = PostgresDSN()
 
-class SQLiteSettings(BaseSettings):
-    SQLALCHEMY_DATABASE_URI: str = "sqlite:///project.db"
+        uri = f"postgresql+psycopg2://{pg.USER}:{pg.PASSWORD.get_secret_value()}" \
+              f"@{pg.HOST}:{pg.PORT}/{pg.DB}"
+        return uri
+
+
+class RedisDSN(BaseSettings, CommonConfig):
+    REDIS_HOST: StrictStr = Field("127.0.0.1", env="REDIS_HOST")
+    REDIS_PORT: StrictStr = Field(6389, env="REDIS_PORT")
 
 
 class RedisSettings(BaseSettings):
-    REDIS_URI: str = Field(f'redis://{REDIS_HOST}:{REDIS_PORT}')
+    REDIS_URI: StrictStr = ""
+
+    @validator("REDIS_URI")
+    def validate(cls, uri):
+        rd: RedisDSN = RedisDSN()
+
+        uri = f"redis://{rd.REDIS_HOST}:{rd.REDIS_PORT}"
+        return uri
+
+
+class FlaskSettings(BaseSettings, CommonConfig):
+    FLASK_HOST: StrictStr = Field("127.0.0.1", env=("FLASK_HOST"))
+    FLASK_PORT: StrictStr = Field(5000, env="FLASK_PORT")
